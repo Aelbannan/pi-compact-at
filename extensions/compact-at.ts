@@ -116,6 +116,27 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_e, ctx) => updateStatus(ctx));
 	pi.on("model_select", (_e, ctx) => updateStatus(ctx));
 
+	/**
+	 * Compaction can only summarize conversation messages older than the last
+	 * `keepRecentTokens`; the system prompt and tool definitions are never
+	 * reduced. Warn when the threshold can't realistically do anything.
+	 */
+	function sanityWarning(ctx: ExtensionContext, threshold: number, keep: number): string | undefined {
+		const notes: string[] = [];
+		const baseline = ctx.getContextUsage()?.tokens;
+		if (baseline != null && baseline >= threshold) {
+			notes.push(
+				`current context (${fmt(baseline)}) is already above the threshold; system prompt + tools can't be compacted, so it will retrigger every turn`,
+			);
+		}
+		if (keep >= threshold) {
+			notes.push(
+				`keepRecentTokens (${fmt(keep)}) ≥ threshold: the last ${fmt(keep)} tokens of conversation are never summarized, so there's often nothing to compact (use keep=<n>)`,
+			);
+		}
+		return notes.length ? `compact-at: ${notes.join("; ")}` : undefined;
+	}
+
 	async function apply(ctx: any, msg: string) {
 		if (ctx.isIdle()) {
 			ctx.ui.notify(`${msg} — reloading`, "info");
@@ -159,6 +180,8 @@ export default function (pi: ExtensionAPI) {
 					`${e.key}: compact@${fmt(e.threshold)} / ${fmt(e.window)} (${Math.round((e.threshold / e.window) * 100)}%), keep=${fmt(e.keep)}${e.hasOverride ? "" : " [defaults]"}`,
 					"info",
 				);
+				const warning = sanityWarning(ctx, e.threshold, e.keep);
+				if (warning) ctx.ui.notify(warning, "warning");
 				return;
 			}
 
@@ -205,6 +228,8 @@ export default function (pi: ExtensionAPI) {
 				threshold !== undefined ? `compact@${fmt(threshold)} of ${fmt(window)}` : "",
 				keep !== undefined ? `keep=${fmt(keep)}` : "",
 			].filter(Boolean).join(", ");
+			const warning = sanityWarning(ctx, threshold ?? effective(ctx)!.threshold, keep ?? effective(ctx)!.keep);
+			if (warning) ctx.ui.notify(warning, "warning");
 			await apply(ctx, `${key}: ${desc}`);
 		},
 	});

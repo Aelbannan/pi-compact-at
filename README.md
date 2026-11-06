@@ -29,3 +29,7 @@ It writes pi's native `compaction.modelOverrides["provider/modelId"]` in `~/.pi/
 
 - **pi-vcc**: works. vcc replaces the summarizer, not the trigger. `keep=` has little effect since vcc uses its own `smartKeepTail`.
 - **pi-blackhole**: in its default `auto` mode it uses its own trigger (`compactAfterTokens` / preset curve), so this threshold only acts as a backstop. Set `compactionEngine: "pi-default"` to let pi's trigger govern.
+
+## Choosing a threshold
+
+Compaction only summarizes conversation messages older than the last `keepRecentTokens` (default 20K). The system prompt and tool definitions are never reduced. So the threshold must be comfortably above *baseline context (system prompt + tools) + keepRecentTokens*, otherwise pi has nothing to summarize and silently skips. Check your baseline in a fresh session; `/compact-at` warns when the threshold is too low.
