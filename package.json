@@ -1,0 +1,11 @@
+{
+  "name": "pi-compact-at",
+  "version": "0.1.0",
+  "description": "Set a per-model auto-compaction threshold for pi (tokens or % of context window)",
+  "license": "MIT",
+  "keywords": ["pi-package", "pi-extension", "compaction"],
+  "repository": { "type": "git", "url": "git+https://github.com/Aelbannan/pi-compact-at.git" },
+  "files": ["extensions/", "README.md", "LICENSE"],
+  "pi": { "extensions": ["./extensions/compact-at.ts"] },
+  "peerDependencies": { "@earendil-works/pi-coding-agent": "*" }
+}
